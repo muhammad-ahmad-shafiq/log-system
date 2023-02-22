@@ -1,12 +1,26 @@
-[sources.logs]
-type = "kafka"
+[sources.rails_logs]
+type              = "kafka"
 bootstrap_servers = "broker:9092"
-group_id = "consumer-group-name"
-topics = ["rails-log"]
+group_id          = "consumer-group-name"
+topics            = ["rails-log"]
 
+[transforms.modified_logs]
+type = "remap"
+inputs = ["rails_logs"]
+source = """
+  raw_data = parse_json!(.message) #ignoring other kafka keys
+  main_logs = parse_json!(raw_data.log)
 
-[sinks.console]
-inputs = ["logs"]
-target = "stdout"
-type = "console"
-encoding.codec = "json"
+  . = main_logs
+  .timestamp = raw_data.@timestamp
+  .platform  = "explore-api"
+  .service   = "rails"
+"""
+
+[sinks.loki]
+type              = "loki"
+inputs            = [ "modified_logs" ]
+endpoint          = "http://loki:3100"
+encoding.codec    = "json"
+labels.service    = "{{ service }}"
+labels.platform   = "{{ platform }}"
