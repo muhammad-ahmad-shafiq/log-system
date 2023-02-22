@@ -1,0 +1,17 @@
+[sources.logs]
+type = "kafka"
+bootstrap_servers = "broker:9092"
+group_id = "consumer-group-name"
+topics = ["rails-log"]
+
+[sinks.console]
+inputs = ["logs"]
+target = "stdout"
+type = "console"
+encoding.codec = "json"
+
+[sinks.loki]
+type = "loki"
+inputs = [ "logs" ]
+endpoint = "http://loki-write:3100"
+tenant_id = "tenant1"
